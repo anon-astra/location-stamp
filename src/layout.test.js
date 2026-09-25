@@ -15,10 +15,20 @@ test('long labels shrink without cropping or wrapping',()=>{
  assert(measure(text,l.size)<=400-2*l.margin+.001);
 });
 test('export retains original pixels while preview can be smaller',()=>{
- const context={drawImage(){},measureText:s=>({width:s.length*12}),fillText(){}};
+ const context={save(){},restore(){},translate(){},scale(){},beginPath(){},moveTo(){},bezierCurveTo(){},arc(){},closePath(){},fill(){},roundRect(){},clip(){},fillRect(){},stroke(){},createLinearGradient(){return {addColorStop(){}};},drawImage(){},measureText:s=>({width:s.length*12}),fillText(){}};
  const canvas={getContext:()=>context},image={naturalWidth:6048,naturalHeight:4024};
- paintStamp(canvas,image,'Place','City','bottom-right',false);
+ paintStamp(canvas,image,'Place','City','bottom-right',false,true);
  assert.equal(canvas.width,6048);assert.equal(canvas.height,4024);
  paintStamp(canvas,image,'Place','City','bottom-right',true);
  assert.equal(canvas.width,1600);
+});
+
+test('glass panel and pin fit within all four corners',()=>{
+ for(const corner of ['top-left','top-right','bottom-left','bottom-right']){
+ const l=stampLayout(400,800,'Place','Long street name '.repeat(20),corner,measure,true);
+ const width=Math.max(measure('Place',l.size),measure('Long street name '.repeat(20),l.detailSize)+l.detailSize*1.25);
+ const left=(l.align==='right'?l.x-width:l.x)-l.panelPadding;
+ assert(left>=0&&left+width+2*l.panelPadding<=400.001);
+ assert(l.y-l.panelPadding>=0&&l.y+l.blockHeight+l.panelPadding<=800);
+ }
 });

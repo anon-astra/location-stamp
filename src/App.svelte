@@ -1,12 +1,12 @@
 <script>
  import {onMount,onDestroy} from 'svelte';
  import {paintStamp} from './layout.js';
- let photo=null,photoUrl='',fileName='',place='',detail='',corner='bottom-left',preview,fontsReady=false,loading=false,saving=false,error='',notice='',loadVersion=0;
+ let photo=null,photoUrl='',fileName='',place='',detail='',corner='bottom-left',glass=false,preview,fontsReady=false,loading=false,saving=false,error='',notice='',loadVersion=0;
  const corners=[['top-left','Top left'],['top-right','Top right'],['bottom-left','Bottom left'],['bottom-right','Bottom right']];
  onMount(async()=>{try{await Promise.all([document.fonts.load('700 48px Inter'),document.fonts.load('400 32px Inter')]);fontsReady=true;}catch{error='The font could not load. Refresh to try again.';}});
  onDestroy(()=>{loadVersion++;if(photoUrl)URL.revokeObjectURL(photoUrl);});
- function redraw(target,image,p,d,c){try{paintStamp(target,image,p,d,c,true);}catch(e){error=e.message;}}
- $: if(preview&&photo&&fontsReady)redraw(preview,photo,place,detail,corner);
+ function redraw(target,image,p,d,c,g){try{paintStamp(target,image,p,d,c,true,g);}catch(e){error=e.message;}}
+ $: if(preview&&photo&&fontsReady)redraw(preview,photo,place,detail,corner,glass);
  async function openImage(event){
   const file=event.currentTarget.files?.[0];if(!file)return;
   const version=++loadVersion;loading=true;error='';notice='';
@@ -23,12 +23,12 @@
  async function save(){
   if(!photo||saving||!fontsReady)return;
   saving=true;error='';notice='';
-  const image=photo,p=place,d=detail,c=corner,name=fileName;
+  const image=photo,p=place,d=detail,c=corner,g=glass,name=fileName;
   let output;
   try{
    await new Promise(resolve=>requestAnimationFrame(()=>setTimeout(resolve,0)));
    output=document.createElement('canvas');
-   paintStamp(output,image,p,d,c,false);
+   paintStamp(output,image,p,d,c,false,g);
    const blob=await new Promise(resolve=>output.toBlob(resolve,'image/png'));
    if(!blob)throw new Error('Your browser couldn’t export this image at full resolution. Try a desktop browser.');
    const url=URL.createObjectURL(blob),link=document.createElement('a');
@@ -48,6 +48,7 @@
   <div class="field"><label for="place">Place name <span>Bold</span></label><input id="place" bind:value={place} placeholder="The Pizza Bakery" maxlength="160" disabled={saving}/></div>
   <div class="field"><label for="detail">Street or city</label><input id="detail" bind:value={detail} placeholder="Church Street, Bengaluru" maxlength="200" disabled={saving}/></div>
   <fieldset disabled={saving}><legend>Position</legend><div class="corners">{#each corners as [value,label]}<label class:selected={corner===value}><input type="radio" name="corner" value={value} bind:group={corner}/><span class="corner-icon {value}" aria-hidden="true"></span>{label}</label>{/each}</div></fieldset>
+  <label class="glass-toggle"><span>Glass background</span><input type="checkbox" role="switch" bind:checked={glass} disabled={saving}/></label>
   <div class="feedback" aria-live="polite">{#if error}<p class="error" role="alert">{error}</p>{:else if loading}<p>Opening your photo…</p>{:else if notice}<p>{notice}</p>{/if}</div>
   <button class="save" onclick={save} disabled={!photo||!fontsReady||loading||saving||(!place.trim()&&!detail.trim())}>{saving?'Saving full-resolution PNG…':'Download PNG'}<span aria-hidden="true">↓</span></button>
   <p class="privacy">Your photo stays on your device.</p>
